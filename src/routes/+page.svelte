@@ -9,8 +9,8 @@
     let distance = $state(null);
 
     const SCHOOL = {
-        latitude: 42.05907363826252,
-        longitude: 19.517295799266908
+        latitude: 42.05910523134263,
+        longitude: 19.517268301553923
     };
 
     // Allowed distance from the school center, in meters.
