@@ -1,41 +1,24 @@
 
 <script>
     import Quote from '#lib/components/Quote.svelte';
+    import { isPointWithinRadius, getDistance } from 'geolib';
 
-    let status = $state('Click the button to check your location.');
+    let status = $state('Visit your school to unlock an exclusive quote.');
     let unlocked = $state(false);
-    let distance = $state(null);
     let loading = $state(false);
+    let distance = $state(null);
 
-    // Replace these with your school's coordinates.
     const SCHOOL = {
-        latitude: 42.05907363826252, 
+        latitude: 42.05907363826252,
         longitude: 19.517295799266908
     };
 
     // Allowed distance from the school center, in meters.
-    const RADIUS = 100;
-
-    function getDistance(lat1, lon1, lat2, lon2) {
-        const toRad = (degrees) => degrees * Math.PI / 180;
-        const earthRadius = 6371000;
-
-        const dLat = toRad(lat2 - lat1);
-        const dLon = toRad(lon2 - lon1);
-
-        const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) *
-            Math.cos(toRad(lat2)) *
-            Math.sin(dLon / 2) ** 2;
-
-        return 2 * earthRadius *
-            Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
+    const RADIUS = 30;
 
     function checkLocation() {
         if (!navigator.geolocation) {
-            status = 'Geolocation is not supported by this browser.';
+            status = 'Geolocation is not supported by your browser.';
             return;
         }
 
@@ -44,33 +27,52 @@
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const { latitude, longitude, accuracy } =
-                    position.coords;
+                const userLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
 
-                distance = Math.round(
-                    getDistance(
-                        latitude,
-                        longitude,
-                        SCHOOL.latitude,
-                        SCHOOL.longitude
-                    )
+                const schoolLocation = {
+                    latitude: SCHOOL.latitude,
+                    longitude: SCHOOL.longitude
+                };
+
+                const accuracy = position.coords.accuracy;
+
+                distance = getDistance(
+                    userLocation,
+                    schoolLocation
                 );
 
-                if (distance <= RADIUS && accuracy <= RADIUS) {
+                const isAtSchool = isPointWithinRadius(
+                    userLocation,
+                    schoolLocation,
+                    RADIUS
+                );
+
+                if (isAtSchool && accuracy <= RADIUS) {
                     unlocked = true;
                     status = 'Welcome! Your school quote is unlocked.';
+                } else if (isAtSchool) {
+                    status =
+                        'Your GPS accuracy is too low. Try again outdoors.';
                 } else {
-                    status = distance <= RADIUS
-                        ? 'Your location is not accurate enough. Try again outdoors.'
-                        : `You are approximately ${distance} meters away. Get closer to your school!`;
+                    status = `You are approximately ${distance} meters away from school. Get closer to unlock the quote!`;
                 }
 
                 loading = false;
             },
             (error) => {
-                status = error.code === 1
-                    ? 'Please allow location access in your browser.'
-                    : 'Could not get your location. Please try again.';
+                if (error.code === 1) {
+                    status =
+                        'Location permission denied. Please allow location access.';
+                } else if (error.code === 3) {
+                    status =
+                        'Location request timed out. Please try again.';
+                } else {
+                    status =
+                        'Unable to get your location. Please try again.';
+                }
 
                 loading = false;
             },
@@ -100,7 +102,9 @@
         A collection of quotes and inspiration.
     </p>
 
-    <section class="mx-auto mb-8 max-w-5xl rounded-xl border bg-white p-6 text-center shadow-sm">
+    <section
+        class="mx-auto mb-8 max-w-5xl rounded-xl border border-pink-200 bg-white p-6 text-center shadow-sm"
+    >
         <h2 class="mb-2 text-xl font-semibold text-gray-800">
             School-exclusive quote
         </h2>
@@ -109,8 +113,14 @@
             {status}
         </p>
 
+        {#if distance !== null}
+            <p class="mb-4 text-sm text-gray-500">
+                Distance from school: {distance} meters
+            </p>
+        {/if}
+
         <button
-            class="rounded-lg bg-pink-500 px-5 py-3 font-medium text-white hover:bg-pink-600 disabled:opacity-50"
+            class="rounded-lg bg-pink-500 px-5 py-3 font-medium text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             onclick={checkLocation}
             disabled={loading || unlocked}
@@ -123,7 +133,9 @@
         </button>
     </section>
 
-    <div class="mx-auto grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div
+        class="mx-auto grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+    >
         <Quote author="Serina Guri">
             Don't be Captain Obvious.
         </Quote>
@@ -154,9 +166,9 @@
 
         {#if unlocked}
             <div class="sm:col-span-2 lg:col-span-3">
-                <Quote author="A message from your school">
-                    Every great journey begins with showing up.
-                    Keep learning, keep growing, and believe in yourself.
+                <Quote author="Data Exchange — School Exclusive">
+                    Every great journey begins with showing up. Keep learning,
+                    keep growing, and believe in yourself.
                 </Quote>
             </div>
         {/if}
