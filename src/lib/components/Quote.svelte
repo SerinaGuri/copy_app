@@ -3,26 +3,25 @@
     let quoteElement;
 
     async function copyQuote() {
-        try {
-            await navigator.clipboard.writeText(
-                quoteElement.innerText.trim()
-            );
+    try {
+        await navigator.clipboard.writeText(
+            quoteElement.innerText.trim()
+        );
 
-            if ("Notification" in window) {
-                let permission = Notification.permission;
-
-                if (permission === "default") {
-                    permission = await Notification.requestPermission();
-                }
-
-                if (permission === "granted") {
-                    new Notification("Quote copied!");
-                }
-            }
-        } catch (error) {
-            console.error(error);
+        if (
+            "Notification" in window &&
+            Notification.permission === "granted"
+        ) {
+            new Notification("Quote copied!");
+        } else {
+            alert("Quote copied successfully!");
         }
+    } catch (error) {
+        console.error("Copy failed:", error);
+        alert("Could not copy the quote.");
     }
+}
+
 
     async function share() {
         try {
