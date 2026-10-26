@@ -1,3 +1,4 @@
+
 <script>
     import Quote from '#lib/components/Quote.svelte';
 </script>
